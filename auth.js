@@ -4,9 +4,8 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const router = express.Router();
 
-// User schema and model
+// User schema and model (without username)
 const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
   email:    { type: String, required: true, unique: true },
   password: { type: String, required: true }
 });
@@ -27,18 +26,18 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// Register route
+// Register route (without username)
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { email, password } = req.body;
 
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: 'Username or email already exists' });
+      return res.status(400).json({ message: 'Email already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, email, password: hashedPassword });
+    const user = new User({ email, password: hashedPassword });
     await user.save();
 
     res.status(201).json({ message: 'User registered successfully!' });
@@ -80,7 +79,7 @@ router.post('/logout', (req, res) => {
 // Get profile of logged-in user
 router.get('/profile', authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password'); // Exclude password
+    const user = await User.findById(req.user.userId).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     res.status(200).json({ profile: user });
